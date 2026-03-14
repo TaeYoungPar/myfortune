@@ -1,11 +1,12 @@
 const yangStems = ["갑", "병", "무", "경", "임"];
 
-export function getDaewoonDirection(gender: string, dayStem: string) {
-  const isYang = yangStems.includes(dayStem);
+export function getDaewoonDirection(
+  gender: string,
+  yearStem: string,
+): 1 | -1 {
+  const normalized = gender?.toLowerCase();
+  const isMale = normalized === "male" || normalized === "m" || normalized === "남" || normalized === "남성";
+  const isYangYear = yangStems.includes(yearStem);
 
-  if (gender === "male") {
-    return isYang ? 1 : -1;
-  }
-
-  return isYang ? -1 : 1;
+  return isMale ? (isYangYear ? 1 : -1) : isYangYear ? -1 : 1;
 }
