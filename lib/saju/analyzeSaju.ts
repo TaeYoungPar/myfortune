@@ -11,7 +11,11 @@ import { calculateMonthlyFortune } from "./monthlyFortune";
 import { buildSajuSummary } from "./summary";
 
 export function analyzeSaju(user: UserFortuneInput): SajuAnalysis {
-  const saju = calculateSaju(user.birthDate, user.birthTime);
+  const saju = calculateSaju(
+    user.birthDate,
+    user.birthTime,
+    user.calendarType,
+  );
   const elementBreakdown = calculateElementsWithBreakdown(saju);
   const elements = elementBreakdown.total;
   const strength = calculateStrength(saju, elements);
@@ -28,7 +32,11 @@ export function analyzeSaju(user: UserFortuneInput): SajuAnalysis {
 
   const tenGods = calculateTenGods(saju);
   const relations = analyzeRelations(saju, sewoonDetail.branch);
-  const monthlyFortune = calculateMonthlyFortune(elements, strength, sewoonDetail.year);
+  const monthlyFortune = calculateMonthlyFortune(
+    elements,
+    strength,
+    sewoonDetail.year,
+  );
   const sewoon = calculateSeWoon(saju);
 
   const analysisBase = {

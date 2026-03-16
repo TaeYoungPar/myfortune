@@ -3,25 +3,42 @@ import { UserFortuneInput, SajuAnalysis, CompatibilitySummary } from "./types";
 function categoryGuide(category: string) {
   const normalized = category?.trim();
   switch (normalized) {
-    case "연애":
-    case "애정":
+    case "love":
+    case "reunion":
+    case "crush":
+    case "contact":
       return "관계 흐름, 감정 표현, 거리 조절, 만남/연락 패턴 위주로 해석하세요.";
-    case "재물":
-    case "금전":
+    case "money":
       return "수입 구조, 지출 습관, 기회 포착, 무리한 투자 회피 위주로 해석하세요.";
-    case "직업":
-    case "취업":
-    case "사업":
+    case "career":
+    case "business":
       return "직장 적응, 역할 책임, 성과 방식, 대인/평판 이슈 위주로 해석하세요.";
-    case "건강":
-      return "의학적 진단처럼 말하지 말고 생활 리듬, 피로 관리, 회복 습관 관점으로만 조언하세요.";
+    case "year":
+    case "life":
+      return "원국과 대운·세운의 큰 흐름을 연결해서 현실적인 방향성 위주로 해석하세요.";
+    case "compatibility":
+      return "두 사람의 차이와 보완 포인트를 현실적인 관계 운영 관점에서 설명하세요.";
     default:
       return "사용자 질문을 최우선으로 두고 원국/대운/세운/월운을 현실 문제와 연결해 설명하세요.";
   }
 }
 
-export function createSajuPrompt(user: UserFortuneInput, analysis: SajuAnalysis): string {
-  const { saju, elements, strength, yongsin, daewoon, sewoonDetail, tenGods, relations, monthlyFortune, summary } = analysis;
+export function createSajuPrompt(
+  user: UserFortuneInput,
+  analysis: SajuAnalysis,
+): string {
+  const {
+    saju,
+    elements,
+    strength,
+    yongsin,
+    daewoon,
+    sewoonDetail,
+    tenGods,
+    relations,
+    monthlyFortune,
+    summary,
+  } = analysis;
   const today = new Date().toISOString().split("T")[0];
 
   return `
@@ -85,7 +102,9 @@ ${categoryGuide(user.category)}
 주요 십성: ${tenGods.dominant.join(", ")}
 약한 십성: ${tenGods.weak.join(", ")}
 총평: ${tenGods.summary}
-세부 분포: ${Object.entries(tenGods.total).map(([key, value]) => `${key} ${value}`).join(", ")}
+세부 분포: ${Object.entries(tenGods.total)
+    .map(([key, value]) => `${key} ${value}`)
+    .join(", ")}
 
 [대운/세운]
 현재 나이: ${daewoon.currentAge}
@@ -102,7 +121,12 @@ ${categoryGuide(user.category)}
 요약: ${relations.summary}
 
 [월운]
-${monthlyFortune.map((item) => `${item.month}월 ${item.pillar} ${item.score}점 ${item.keywords.join("/")} - ${item.note}`).join("\n")}
+${monthlyFortune
+  .map(
+    (item) =>
+      `${item.month}월 ${item.pillar} ${item.score}점 ${item.keywords.join("/")} - ${item.note}`,
+  )
+  .join("\n")}
 
 다음 형식으로만 답하세요.
 

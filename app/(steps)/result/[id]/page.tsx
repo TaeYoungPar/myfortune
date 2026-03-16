@@ -49,6 +49,8 @@ export default function ResultPage() {
   const fortune = useQuery(api.fortunes.getFortune, id ? { id } : "skip");
 
   const analysis = fortune?.analysis;
+  const compatibility = analysis?.compatibility;
+  const partnerAnalysis = analysis?.partnerAnalysis;
 
   const dominantElements = useMemo(() => {
     if (!analysis?.elements) return [];
@@ -117,7 +119,9 @@ export default function ResultPage() {
             </div>
 
             <h1 className="text-3xl md:text-4xl font-bold mb-3">
-              {safeText(fortune.user.name)}님의 분석 결과
+              {fortune.user.category === "compatibility" && fortune.user.partner
+                ? `${safeText(fortune.user.name)}님 · ${safeText(fortune.user.partner.name)}님 궁합 결과`
+                : `${safeText(fortune.user.name)}님의 분석 결과`}
             </h1>
 
             <p className="text-gray-400 max-w-2xl leading-relaxed">
@@ -180,6 +184,52 @@ export default function ResultPage() {
                 </div>
               </div>
             </section>
+
+
+            {fortune.user.category === "compatibility" && compatibility ? (
+              <section className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl p-6 md:p-8">
+                <h2 className="text-xl font-bold mb-5">궁합 핵심 요약</h2>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-5">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <div className="text-xs text-gray-500 mb-1">궁합 점수</div>
+                    <div className="text-2xl font-bold">{compatibility.score}점</div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <div className="text-xs text-gray-500 mb-1">등급</div>
+                    <div className="text-2xl font-bold">{compatibility.grade}</div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <div className="text-xs text-gray-500 mb-1">상대 일주</div>
+                    <div className="text-2xl font-bold tracking-wider">
+                      {safeText(partnerAnalysis?.saju?.day, "-")}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
+                    <div className="text-sm font-semibold mb-3 text-purple-200">잘 맞는 지점</div>
+                    <ul className="space-y-2 text-sm text-gray-300 list-disc pl-5">
+                      {compatibility.strengths.map((item: string, index: number) => (
+                        <li key={`${item}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
+                    <div className="text-sm font-semibold mb-3 text-amber-200">조율 포인트</div>
+                    <ul className="space-y-2 text-sm text-gray-300 list-disc pl-5">
+                      {compatibility.cautions.map((item: string, index: number) => (
+                        <li key={`${item}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <p className="mt-5 text-sm leading-7 text-gray-300">{compatibility.summary}</p>
+              </section>
+            ) : null}
 
             <section className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl p-6 md:p-8">
               <h2 className="text-xl font-bold mb-5">사주 원국</h2>

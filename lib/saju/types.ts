@@ -1,8 +1,11 @@
+export type CalendarType = "solar" | "lunar";
+
 export type UserFortuneInput = {
   name: string;
   gender: string;
   birthDate: string;
   birthTime: string;
+  calendarType?: CalendarType;
   category: string;
   question: string;
 };
@@ -184,4 +187,9 @@ export type SajuAnalysis = {
   relations: RelationSummary;
   monthlyFortune: MonthlyFortune[];
   summary: SajuSummary;
+};
+
+export type CompatibilityAnalysis = SajuAnalysis & {
+  partnerAnalysis: SajuAnalysis;
+  compatibility: CompatibilitySummary;
 };

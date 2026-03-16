@@ -1,22 +1,76 @@
-import { Solar } from "./lunar";
+import { Lunar, Solar } from "./lunar";
 import { HIDDEN_STEMS_MAP } from "./stemsBranches";
 import { SajuPillars } from "./types";
+
+type CalendarType = "solar" | "lunar";
+
+function normalizeCalendarType(calendarType?: string): CalendarType {
+  return calendarType === "lunar" ? "lunar" : "solar";
+}
+
+function parseBirthDate(birthDate: string) {
+  const [year, month, day] = birthDate.split("-").map(Number);
+
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(day)
+  ) {
+    throw new Error(`잘못된 birthDate 형식: ${birthDate}`);
+  }
+
+  return { year, month, day };
+}
+
+function parseBirthTime(birthTime?: string) {
+  if (!birthTime || birthTime.trim() === "") {
+    return { hour: 0, minute: 0, second: 0 };
+  }
+
+  const clean = birthTime.trim();
+  const parts = clean.split(":");
+
+  const rawHour = Number(parts[0] ?? 0);
+  const rawMinute = Number(parts[1] ?? 0);
+  const rawSecond = Number(parts[2] ?? 0);
+
+  const hour = Number.isFinite(rawHour)
+    ? Math.max(0, Math.min(23, rawHour))
+    : 0;
+
+  const minute = Number.isFinite(rawMinute)
+    ? Math.max(0, Math.min(59, rawMinute))
+    : 0;
+
+  const second = Number.isFinite(rawSecond)
+    ? Math.max(0, Math.min(59, rawSecond))
+    : 0;
+
+  return { hour, minute, second };
+}
 
 export function calculateSaju(
   birthDate: string,
   birthTime: string,
+  calendarType: string = "solar",
 ): SajuPillars {
-  const [year, month, day] = birthDate.split("-").map(Number);
-  const [hour, minute] = (birthTime || "00:00").split(":").map(Number);
+  const { year, month, day } = parseBirthDate(birthDate);
+  const { hour, minute, second } = parseBirthTime(birthTime);
 
-  const solar = Solar.fromYmdHms(
-    year,
-    month,
-    day,
-    Number.isNaN(hour) ? 0 : hour,
-    Number.isNaN(minute) ? 0 : minute,
-    0,
-  );
+  const solar =
+    normalizeCalendarType(calendarType) === "lunar"
+      ? (() => {
+          const solarDate = Lunar.fromYmd(year, month, day).getSolar();
+          return Solar.fromYmdHms(
+            solarDate.getYear(),
+            solarDate.getMonth(),
+            solarDate.getDay(),
+            hour,
+            minute,
+            second,
+          );
+        })()
+      : Solar.fromYmdHms(year, month, day, hour, minute, second);
 
   const lunar = solar.getLunar();
   const eightChar = lunar.getEightChar();

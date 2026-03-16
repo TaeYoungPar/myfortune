@@ -7,29 +7,73 @@ import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 
 import { analyzeSaju } from "../lib/saju/analyzeSaju";
-import { createSajuPrompt } from "../lib/saju/sajuPrompt";
+import { analyzeCompatibility } from "../lib/saju/compatibility";
+import { createCompatibilityPrompt, createSajuPrompt } from "../lib/saju/sajuPrompt";
+import type { CompatibilityAnalysis, UserFortuneInput } from "../lib/saju/types";
+
+type PartnerArgs = {
+  name: string;
+  gender: string;
+  calendarType: string;
+  birthDate: string;
+  birthTime: string;
+};
 
 type GenerateFortuneArgs = {
   name: string;
   gender: string;
+  calendarType: string;
   birthDate: string;
   birthTime: string;
   category: string;
   question: string;
+  partner?: PartnerArgs;
 };
+
+function buildCacheKey(user: GenerateFortuneArgs) {
+  return JSON.stringify({
+    name: user.name,
+    gender: user.gender,
+    calendarType: user.calendarType,
+    birthDate: user.birthDate,
+    birthTime: user.birthTime,
+    category: user.category,
+    question: user.question,
+    partner: user.partner ?? null,
+  });
+}
+
+function toUserFortuneInput(user: GenerateFortuneArgs): UserFortuneInput {
+  return {
+    name: user.name,
+    gender: user.gender,
+    calendarType: user.calendarType === "lunar" ? "lunar" : "solar",
+    birthDate: user.birthDate,
+    birthTime: user.birthTime,
+    category: user.category,
+    question: user.question,
+  };
+}
+
+function toPartnerFortuneInput(user: GenerateFortuneArgs): UserFortuneInput | null {
+  if (!user.partner) return null;
+
+  return {
+    name: user.partner.name,
+    gender: user.partner.gender,
+    calendarType: user.partner.calendarType === "lunar" ? "lunar" : "solar",
+    birthDate: user.partner.birthDate,
+    birthTime: user.partner.birthTime,
+    category: "compatibility",
+    question: user.question,
+  };
+}
 
 const generateFortuneHandler = async (
   ctx: ActionCtx,
   user: GenerateFortuneArgs,
 ): Promise<Id<"fortunes">> => {
-  const cacheKey = [
-    user.name,
-    user.gender,
-    user.birthDate,
-    user.birthTime,
-    user.category,
-    user.question,
-  ].join("-");
+  const cacheKey = buildCacheKey(user);
 
   const cached = await ctx.runQuery(api.fortunes.getByCacheKey, {
     cacheKey,
@@ -39,8 +83,30 @@ const generateFortuneHandler = async (
     return cached._id;
   }
 
-  const analysis = analyzeSaju(user);
-  const prompt = createSajuPrompt(user, analysis);
+  const me = toUserFortuneInput(user);
+  const partner = toPartnerFortuneInput(user);
+  const isCompatibility = user.category === "compatibility" && !!partner;
+
+  const myAnalysis = analyzeSaju(me);
+  const partnerAnalysis = isCompatibility && partner ? analyzeSaju(partner) : null;
+  const compatibility =
+    isCompatibility && partnerAnalysis
+      ? analyzeCompatibility(myAnalysis, partnerAnalysis)
+      : null;
+
+  const analysis: CompatibilityAnalysis | typeof myAnalysis =
+    isCompatibility && partnerAnalysis && compatibility
+      ? {
+          ...myAnalysis,
+          partnerAnalysis,
+          compatibility,
+        }
+      : myAnalysis;
+
+  const prompt =
+    isCompatibility && partner && partnerAnalysis && compatibility
+      ? createCompatibilityPrompt(me, partner, myAnalysis, partnerAnalysis, compatibility)
+      : createSajuPrompt(me, myAnalysis);
 
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -69,7 +135,18 @@ const generateFortuneHandler = async (
 
   const id = await ctx.runMutation(api.fortunes.createFortune, {
     cacheKey,
-    user,
+    user: {
+      ...me,
+      calendarType: me.calendarType ?? "solar",
+      ...(user.partner
+        ? {
+            partner: {
+              ...user.partner,
+              calendarType: user.partner.calendarType === "lunar" ? "lunar" : "solar",
+            },
+          }
+        : {}),
+    },
     analysis,
     result,
     createdAt: Date.now(),
@@ -82,10 +159,20 @@ export const generateFortune = action({
   args: {
     name: v.string(),
     gender: v.string(),
+    calendarType: v.string(),
     birthDate: v.string(),
     birthTime: v.string(),
     category: v.string(),
     question: v.string(),
+    partner: v.optional(
+      v.object({
+        name: v.string(),
+        gender: v.string(),
+        calendarType: v.string(),
+        birthDate: v.string(),
+        birthTime: v.string(),
+      }),
+    ),
   },
   handler: generateFortuneHandler,
 });
