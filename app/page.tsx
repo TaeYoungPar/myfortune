@@ -1,13 +1,199 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFortuneStore } from "@/store/useFortuneStore";
 import { motion } from "framer-motion";
-import { Clock, MessageSquare, ChevronRight } from "lucide-react";
+import {
+  Clock,
+  MessageSquare,
+  ChevronRight,
+  HeartHandshake,
+} from "lucide-react";
+
+type DateParts = {
+  year: string;
+  month: string;
+  day: string;
+};
+
+function isValidDate(year: string, month: string, day: string) {
+  if (!year || !month || !day) return false;
+
+  const y = Number(year);
+  const m = Number(month);
+  const d = Number(day);
+
+  if (!y || !m || !d) return false;
+  if (year.length !== 4) return false;
+  if (m < 1 || m > 12) return false;
+  if (d < 1 || d > 31) return false;
+
+  const date = new Date(y, m - 1, d);
+
+  return (
+    date.getFullYear() === y &&
+    date.getMonth() === m - 1 &&
+    date.getDate() === d
+  );
+}
+
+function formatMonthOrDay(value: string, max: number) {
+  let v = value.replace(/\D/g, "").slice(0, 2);
+  if (!v) return "";
+  if (Number(v) > max) v = String(max);
+  return v;
+}
+
+function BirthDateInputs({
+  year,
+  month,
+  day,
+  setYear,
+  setMonth,
+  setDay,
+}: {
+  year: string;
+  month: string;
+  day: string;
+  setYear: (v: string) => void;
+  setMonth: (v: string) => void;
+  setDay: (v: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      <input
+        type="text"
+        placeholder="YYYY"
+        inputMode="numeric"
+        maxLength={4}
+        value={year}
+        onChange={(e) => setYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+        className="bg-black/20 border border-white/10 p-4 rounded-2xl focus:outline-none focus:border-purple-500"
+      />
+
+      <input
+        type="text"
+        placeholder="MM"
+        inputMode="numeric"
+        maxLength={2}
+        value={month}
+        onChange={(e) => setMonth(formatMonthOrDay(e.target.value, 12))}
+        className="bg-black/20 border border-white/10 p-4 rounded-2xl focus:outline-none focus:border-purple-500"
+      />
+
+      <input
+        type="text"
+        placeholder="DD"
+        inputMode="numeric"
+        maxLength={2}
+        value={day}
+        onChange={(e) => setDay(formatMonthOrDay(e.target.value, 31))}
+        className="bg-black/20 border border-white/10 p-4 rounded-2xl focus:outline-none focus:border-purple-500"
+      />
+    </div>
+  );
+}
+
+function BirthTimeSelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="relative">
+      <Clock className="absolute left-4 top-4 text-gray-500" size={18} />
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full bg-black/20 border border-white/10 p-4 pl-12 rounded-2xl focus:outline-none focus:border-purple-500 text-gray-300 appearance-none hover:cursor-pointer"
+      >
+        <option value="" className="bg-[#1a1b2e]">
+          태어난 시간 (모름)
+        </option>
+        <option value="23" className="bg-[#1a1b2e]">
+          23:00 ~ 01:00 (자시)
+        </option>
+        <option value="1" className="bg-[#1a1b2e]">
+          01:00 ~ 03:00 (축시)
+        </option>
+        <option value="3" className="bg-[#1a1b2e]">
+          03:00 ~ 05:00 (인시)
+        </option>
+        <option value="5" className="bg-[#1a1b2e]">
+          05:00 ~ 07:00 (묘시)
+        </option>
+        <option value="7" className="bg-[#1a1b2e]">
+          07:00 ~ 09:00 (진시)
+        </option>
+        <option value="9" className="bg-[#1a1b2e]">
+          09:00 ~ 11:00 (사시)
+        </option>
+        <option value="11" className="bg-[#1a1b2e]">
+          11:00 ~ 13:00 (오시)
+        </option>
+        <option value="13" className="bg-[#1a1b2e]">
+          13:00 ~ 15:00 (미시)
+        </option>
+        <option value="15" className="bg-[#1a1b2e]">
+          15:00 ~ 17:00 (신시)
+        </option>
+        <option value="17" className="bg-[#1a1b2e]">
+          17:00 ~ 19:00 (유시)
+        </option>
+        <option value="19" className="bg-[#1a1b2e]">
+          19:00 ~ 21:00 (술시)
+        </option>
+        <option value="21" className="bg-[#1a1b2e]">
+          21:00 ~ 23:00 (해시)
+        </option>
+      </select>
+    </div>
+  );
+}
+
+function CalendarTypeToggle({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: "solar" | "lunar") => void;
+}) {
+  return (
+    <div className="flex gap-2">
+      <button
+        type="button"
+        onClick={() => onChange("solar")}
+        className={`flex-1 p-3 rounded-xl border ${
+          value === "solar"
+            ? "bg-purple-600 border-purple-500"
+            : "bg-black/20 border-white/10"
+        }`}
+      >
+        양력
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onChange("lunar")}
+        className={`flex-1 p-3 rounded-xl border ${
+          value === "lunar"
+            ? "bg-purple-600 border-purple-500"
+            : "bg-black/20 border-white/10"
+        }`}
+      >
+        음력
+      </button>
+    </div>
+  );
+}
 
 export default function HomePage() {
   const router = useRouter();
   const store = useFortuneStore();
+  const [error, setError] = useState("");
 
   const themes = [
     { id: "love", label: "💕 연애운" },
@@ -35,24 +221,75 @@ export default function HomePage() {
     life: "인생의 방향과 앞으로의 흐름을 분석해주세요.",
   };
 
-  const handleSubmit = () => {
+  const isCompatibility = store.category === "compatibility";
+
+  const myBirthValid = useMemo(
+    () => isValidDate(store.birthYear, store.birthMonth, store.birthDay),
+    [store.birthYear, store.birthMonth, store.birthDay],
+  );
+
+  const partnerBirthValid = useMemo(
+    () =>
+      isValidDate(
+        store.partnerBirthYear,
+        store.partnerBirthMonth,
+        store.partnerBirthDay,
+      ),
+    [store.partnerBirthYear, store.partnerBirthMonth, store.partnerBirthDay],
+  );
+
+  useEffect(() => {
+    if (!store.category) return;
+
+    const preset = categoryQuestions[store.category];
     if (
-      !store.name ||
-      !store.birthYear ||
-      !store.birthMonth ||
-      !store.birthDay
+      !store.question ||
+      Object.values(categoryQuestions).includes(store.question)
     ) {
-      alert("이름과 생년월일은 정확한 분석을 위해 필수입니다.");
+      store.setQuestion(preset);
+    }
+  }, [store.category]);
+
+  const validateBaseFields = () => {
+    if (!store.name.trim()) return "이름을 입력해주세요.";
+    if (!store.category) return "운세 테마를 선택해주세요.";
+    if (!store.birthYear || !store.birthMonth || !store.birthDay) {
+      return "생년월일을 입력해주세요.";
+    }
+    if (!myBirthValid) return "내 생년월일을 정확히 입력해주세요.";
+    return "";
+  };
+
+  const validateCompatibilityFields = () => {
+    if (!isCompatibility) return "";
+    if (!store.partnerName.trim()) return "상대 이름을 입력해주세요.";
+    if (
+      !store.partnerBirthYear ||
+      !store.partnerBirthMonth ||
+      !store.partnerBirthDay
+    ) {
+      return "상대 생년월일을 입력해주세요.";
+    }
+    if (!partnerBirthValid) return "상대 생년월일을 정확히 입력해주세요.";
+    return "";
+  };
+
+  const handleSubmit = () => {
+    const baseError = validateBaseFields();
+    if (baseError) {
+      setError(baseError);
       return;
     }
 
-    if (!store.category) {
-      alert("운세 테마를 선택해주세요.");
+    const compatibilityError = validateCompatibilityFields();
+    if (compatibilityError) {
+      setError(compatibilityError);
       return;
     }
 
-    // 질문이 없으면 카테고리 기반 질문 자동 생성
-    if (!store.question) {
+    setError("");
+
+    if (!store.question.trim()) {
       store.setQuestion(categoryQuestions[store.category]);
     }
 
@@ -61,7 +298,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#0B0E14] text-gray-100 flex flex-col items-center justify-center p-4 py-12">
-      {/* 배경 효과 */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-purple-900/10 blur-[120px] rounded-full" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-900/10 blur-[120px] rounded-full" />
@@ -72,7 +308,6 @@ export default function HomePage() {
         animate={{ opacity: 1, y: 0 }}
         className="relative z-10 w-full max-w-lg bg-white/5 backdrop-blur-2xl border border-white/10 p-6 md:p-10 rounded-[2.5rem] shadow-2xl"
       >
-        {/* 헤더 */}
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold bg-gradient-to-b from-white to-gray-500 bg-clip-text text-transparent mb-2">
             미래를 읽는 시간
@@ -83,7 +318,6 @@ export default function HomePage() {
         </div>
 
         <div className="space-y-8">
-          {/* 기본 정보 */}
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-purple-400 font-medium text-sm">
               <span className="w-5 h-5 rounded-full bg-purple-400/10 flex items-center justify-center text-[10px]">
@@ -115,7 +349,6 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* 출생 정보 */}
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-purple-400 font-medium text-sm">
               <span className="w-5 h-5 rounded-full bg-purple-400/10 flex items-center justify-center text-[10px]">
@@ -124,150 +357,35 @@ export default function HomePage() {
               출생 정보
             </div>
 
-            {/* 양력 음력 */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => store.setCalendarType("solar")}
-                className={`flex-1 p-3 rounded-xl border  ${
-                  store.calendarType === "solar"
-                    ? "bg-purple-600 border-purple-500"
-                    : "bg-black/20 border-white/10"
-                }`}
-              >
-                양력
-              </button>
+            <CalendarTypeToggle
+              value={store.calendarType}
+              onChange={store.setCalendarType}
+            />
 
-              <button
-                onClick={() => store.setCalendarType("lunar")}
-                className={`flex-1 p-3 rounded-xl border ${
-                  store.calendarType === "lunar"
-                    ? "bg-purple-600 border-purple-500"
-                    : "bg-black/20 border-white/10"
-                }`}
-              >
-                음력
-              </button>
-            </div>
+            <BirthDateInputs
+              year={store.birthYear}
+              month={store.birthMonth}
+              day={store.birthDay}
+              setYear={store.setBirthYear}
+              setMonth={store.setBirthMonth}
+              setDay={store.setBirthDay}
+            />
 
-            {/* 생년월일 */}
-            <div className="grid grid-cols-3 gap-4">
-              {/* YEAR */}
-              <input
-                type="text"
-                placeholder="YYYY"
-                inputMode="numeric"
-                maxLength={4}
-                value={store.birthYear}
-                onChange={(e) => {
-                  const v = e.target.value.replace(/\D/g, "").slice(0, 4);
-                  store.setBirthYear(v);
-                }}
-                className="bg-black/20 border border-white/10 p-4 rounded-2xl focus:outline-none focus:border-purple-500"
-              />
+            <BirthTimeSelect
+              value={store.birthTime}
+              onChange={store.setBirthTime}
+            />
 
-              {/* MONTH */}
-              <input
-                type="text"
-                placeholder="MM"
-                inputMode="numeric"
-                maxLength={2}
-                value={store.birthMonth}
-                onChange={(e) => {
-                  let v = e.target.value.replace(/\D/g, "").slice(0, 2);
-
-                  if (Number(v) > 12) v = "12";
-
-                  store.setBirthMonth(v);
-                }}
-                className="bg-black/20 border border-white/10 p-4 rounded-2xl focus:outline-none focus:border-purple-500"
-              />
-
-              {/* DAY */}
-              <input
-                type="text"
-                placeholder="DD"
-                inputMode="numeric"
-                maxLength={2}
-                value={store.birthDay}
-                onChange={(e) => {
-                  let v = e.target.value.replace(/\D/g, "").slice(0, 2);
-
-                  if (Number(v) > 31) v = "31";
-
-                  store.setBirthDay(v);
-                }}
-                className="bg-black/20 border border-white/10 p-4 rounded-2xl focus:outline-none focus:border-purple-500"
-              />
-            </div>
-
-            {/* 태어난 시간 */}
-            <div className="relative">
-              <Clock
-                className="absolute left-4 top-4 text-gray-500"
-                size={18}
-              />
-
-              <select
-                value={store.birthTime}
-                onChange={(e) => store.setBirthTime(e.target.value)}
-                className="w-full bg-black/20 border border-white/10 p-4 pl-12 rounded-2xl focus:outline-none focus:border-purple-500 text-gray-300 appearance-none hover:cursor-pointer"
-              >
-                <option value="" className="bg-[#1a1b2e]">
-                  태어난 시간 (모름)
-                </option>
-
-                <option value="23" className="bg-[#1a1b2e]">
-                  23:00 ~ 01:00 (자시)
-                </option>
-
-                <option value="1" className="bg-[#1a1b2e]">
-                  01:00 ~ 03:00 (축시)
-                </option>
-
-                <option value="3" className="bg-[#1a1b2e]">
-                  03:00 ~ 05:00 (인시)
-                </option>
-
-                <option value="5" className="bg-[#1a1b2e]">
-                  05:00 ~ 07:00 (묘시)
-                </option>
-
-                <option value="7" className="bg-[#1a1b2e]">
-                  07:00 ~ 09:00 (진시)
-                </option>
-
-                <option value="9" className="bg-[#1a1b2e]">
-                  09:00 ~ 11:00 (사시)
-                </option>
-
-                <option value="11" className="bg-[#1a1b2e]">
-                  11:00 ~ 13:00 (오시)
-                </option>
-
-                <option value="13" className="bg-[#1a1b2e]">
-                  13:00 ~ 15:00 (미시)
-                </option>
-
-                <option value="15" className="bg-[#1a1b2e]">
-                  15:00 ~ 17:00 (신시)
-                </option>
-
-                <option value="17" className="bg-[#1a1b2e]">
-                  17:00 ~ 19:00 (유시)
-                </option>
-
-                <option value="19" className="bg-[#1a1b2e]">
-                  19:00 ~ 21:00 (술시)
-                </option>
-
-                <option value="21" className="bg-[#1a1b2e]">
-                  21:00 ~ 23:00 (해시)
-                </option>
-              </select>
-            </div>
+            {!!store.birthYear &&
+              !!store.birthMonth &&
+              !!store.birthDay &&
+              !myBirthValid && (
+                <p className="text-sm text-red-400">
+                  존재하지 않는 날짜예요. 생년월일을 다시 확인해주세요.
+                </p>
+              )}
           </section>
 
-          {/* 운세 테마 */}
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-purple-400 font-medium text-sm">
               <span className="w-5 h-5 rounded-full bg-purple-400/10 flex items-center justify-center text-[10px]">
@@ -284,9 +402,9 @@ export default function HomePage() {
               {themes.map((theme) => (
                 <button
                   key={theme.id}
+                  type="button"
                   onClick={() => store.setCategory(theme.id)}
-                  className={`p-4 rounded-xl border text-sm font-medium transition-all
-                  ${
+                  className={`p-4 rounded-xl border text-sm font-medium transition-all ${
                     store.category === theme.id
                       ? "bg-purple-600 border-purple-500 text-white"
                       : "bg-black/20 border-white/10 hover:border-purple-400"
@@ -298,14 +416,71 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* 고민 상담 */}
+          {isCompatibility && (
+            <section className="space-y-4">
+              <div className="flex items-center gap-2 text-pink-400 font-medium text-sm">
+                <HeartHandshake size={16} />
+                상대 정보
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  placeholder="상대 이름"
+                  value={store.partnerName}
+                  onChange={(e) => store.setPartnerName(e.target.value)}
+                  className="w-full bg-black/20 border border-white/10 p-4 rounded-2xl focus:outline-none focus:border-pink-500 placeholder:text-gray-600"
+                />
+
+                <select
+                  value={store.partnerGender}
+                  onChange={(e) => store.setPartnerGender(e.target.value)}
+                  className="w-full bg-black/20 border border-white/10 p-4 rounded-2xl focus:outline-none focus:border-pink-500 text-gray-300 appearance-none hover:cursor-pointer"
+                >
+                  <option value="male" className="bg-[#1a1b2e]">
+                    남성
+                  </option>
+                  <option value="female" className="bg-[#1a1b2e]">
+                    여성
+                  </option>
+                </select>
+              </div>
+
+              <CalendarTypeToggle
+                value={store.partnerCalendarType}
+                onChange={store.setPartnerCalendarType}
+              />
+
+              <BirthDateInputs
+                year={store.partnerBirthYear}
+                month={store.partnerBirthMonth}
+                day={store.partnerBirthDay}
+                setYear={store.setPartnerBirthYear}
+                setMonth={store.setPartnerBirthMonth}
+                setDay={store.setPartnerBirthDay}
+              />
+
+              <BirthTimeSelect
+                value={store.partnerBirthTime}
+                onChange={store.setPartnerBirthTime}
+              />
+
+              {!!store.partnerBirthYear &&
+                !!store.partnerBirthMonth &&
+                !!store.partnerBirthDay &&
+                !partnerBirthValid && (
+                  <p className="text-sm text-red-400">
+                    상대 생년월일이 올바르지 않아요. 다시 확인해주세요.
+                  </p>
+                )}
+            </section>
+          )}
+
           <section className="space-y-4">
             <div className="relative">
               <MessageSquare
                 className="absolute left-4 top-4 text-gray-500"
                 size={18}
               />
-
               <textarea
                 placeholder="구체적인 고민을 적어주시면 AI가 더 정교하게 분석합니다."
                 value={store.question}
@@ -315,7 +490,12 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* 분석 시작 */}
+          {error && (
+            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              {error}
+            </div>
+          )}
+
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}

@@ -1,14 +1,13 @@
-import { ElementCount, ElementKey, MonthlyFortune } from "./types";
+import { Solar } from "./lunar";
+import { ElementCount, ElementKey, MonthlyFortune, StrengthResult } from "./types";
 import {
   BRANCH_ELEMENT_MAP,
-  branches,
+  STEM_ELEMENT_MAP,
   getControlledElement,
   getControllingElement,
   getGeneratedElement,
   getGeneratingElement,
 } from "./stemsBranches";
-
-const MONTH_BRANCHES = ["인", "묘", "진", "사", "오", "미", "신", "유", "술", "해", "자", "축"] as const;
 
 function relationScore(dayElement: ElementKey, monthElement: ElementKey) {
   if (monthElement === dayElement) return 8;
@@ -27,29 +26,56 @@ function keywords(dayElement: ElementKey, monthElement: ElementKey): string[] {
   return ["압박", "규칙", "페이스조절"];
 }
 
-function monthStemByIndex(index: number): string {
-  return stemsForCalendar[(index % stemsForCalendar.length + stemsForCalendar.length) % stemsForCalendar.length];
+function getMonthPillar(year: number, month: number) {
+  const solar = Solar.fromYmdHms(year, month, 15, 12, 0, 0);
+  const eightChar = solar.getLunar().getEightChar();
+  return {
+    stem: eightChar.getMonthGan(),
+    branch: eightChar.getMonthZhi(),
+  };
 }
-
-const stemsForCalendar = ["병", "정", "무", "기", "경", "신", "임", "계", "갑", "을"] as const;
 
 export function calculateMonthlyFortune(
   elements: ElementCount,
-  dayElement: ElementKey,
+  strength: StrengthResult,
+  targetYear = new Date().getFullYear(),
 ): MonthlyFortune[] {
   const total = elements.wood + elements.fire + elements.earth + elements.metal + elements.water;
 
-  return MONTH_BRANCHES.map((branch, index) => {
+  return Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+    const { stem, branch } = getMonthPillar(targetYear, month);
+    const stemElement = STEM_ELEMENT_MAP[stem];
     const monthElement = BRANCH_ELEMENT_MAP[branch];
-    const base = relationScore(dayElement, monthElement);
-    const balanceBonus = total > 0 ? (10 - Math.abs(elements[dayElement] - total / 5)) * 1.2 : 0;
-    const score = Math.max(35, Math.min(95, Math.round(base * 6 + balanceBonus)));
+
+    const base = relationScore(strength.dayElement, monthElement);
+    const balanceBonus = total > 0 ? (10 - Math.abs(elements[strength.dayElement] - total / 5)) * 1.2 : 0;
+    const seasonalBonus = stemElement === strength.dayElement || stemElement === getGeneratingElement(strength.dayElement) ? 5 : 0;
+    const strengthTuning =
+      strength.strength === "weak"
+        ? stemElement === getGeneratingElement(strength.dayElement) || stemElement === strength.dayElement
+          ? 5
+          : -2
+        : stemElement === getGeneratedElement(strength.dayElement) || stemElement === getControlledElement(strength.dayElement)
+          ? 4
+          : 0;
+
+    const score = Math.max(35, Math.min(95, Math.round(base * 6 + balanceBonus + seasonalBonus + strengthTuning)));
+    const favorable = score >= 68;
+    const monthKeywords = keywords(strength.dayElement, monthElement);
+    const note = favorable
+      ? "추진과 정리가 비교적 잘 맞물리는 달입니다."
+      : score <= 54
+        ? "무리한 확장보다 속도 조절과 일정 정비가 중요한 달입니다."
+        : "무난하지만 선택과 집중이 필요한 달입니다.";
 
     return {
-      month: index + 1,
-      pillar: `${monthStemByIndex(index)}${branch}`,
+      month,
+      pillar: `${stem}${branch}`,
       score,
-      keywords: keywords(dayElement, monthElement),
+      favorable,
+      keywords: monthKeywords,
+      note,
     };
   });
 }

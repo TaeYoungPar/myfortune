@@ -1,13 +1,44 @@
 "use client";
 
+import { useMemo } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery } from "convex/react";
+import { motion } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { motion } from "framer-motion";
-import { Lock } from "lucide-react";
-// 1. 라이브러리 임포트
-import ReactMarkdown from "react-markdown";
+
+const categoryLabelMap: Record<string, string> = {
+  love: "연애운",
+  reunion: "재회 가능성",
+  crush: "짝사랑 성공률",
+  contact: "연락운",
+  compatibility: "궁합 분석",
+  money: "재물운",
+  career: "직장운",
+  business: "사업운",
+  year: "올해 운세",
+  life: "인생 방향",
+};
+
+const strengthLabelMap: Record<string, string> = {
+  strong: "신강",
+  weak: "신약",
+};
+
+const elementLabelMap = {
+  wood: "목",
+  fire: "화",
+  earth: "토",
+  metal: "금",
+  water: "수",
+};
+
+function safeText(value: unknown, fallback = "-") {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
 
 export default function ResultPage() {
   const params = useParams();
@@ -17,57 +48,459 @@ export default function ResultPage() {
 
   const fortune = useQuery(api.fortunes.getFortune, id ? { id } : "skip");
 
+  const analysis = fortune?.analysis;
+
+  const dominantElements = useMemo(() => {
+    if (!analysis?.elements) return [];
+
+    return Object.entries(analysis.elements)
+      .sort((a, b) => Number(b[1]) - Number(a[1]))
+      .slice(0, 2)
+      .map(([key, value]) => ({
+        key,
+        label: elementLabelMap[key as keyof typeof elementLabelMap] ?? key,
+        value: Number(value),
+      }));
+  }, [analysis]);
+
+  const lackingElements = useMemo(() => {
+    if (!analysis?.elements) return [];
+
+    return Object.entries(analysis.elements)
+      .sort((a, b) => Number(a[1]) - Number(b[1]))
+      .slice(0, 2)
+      .map(([key, value]) => ({
+        key,
+        label: elementLabelMap[key as keyof typeof elementLabelMap] ?? key,
+        value: Number(value),
+      }));
+  }, [analysis]);
+
+  const goodMonths = useMemo(() => {
+    if (!analysis?.monthlyFortune) return [];
+
+    return [...analysis.monthlyFortune]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+  }, [analysis]);
+
+  const cautionMonths = useMemo(() => {
+    if (!analysis?.monthlyFortune) return [];
+
+    return [...analysis.monthlyFortune]
+      .sort((a, b) => a.score - b.score)
+      .slice(0, 3);
+  }, [analysis]);
+
   if (!fortune) {
-    return null;
+    return (
+      <div className="min-h-screen bg-[#0B0E14] text-white flex items-center justify-center p-6">
+        <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8 text-center">
+          <p className="text-gray-300">결과를 불러오는 중입니다...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0E14] text-white flex items-center justify-center p-6">
-      <div className="w-full max-w-2xl bg-white/5 border border-white/10 backdrop-blur-xl rounded-3xl p-8 shadow-2xl">
-        <h1 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-          🔮 AI 운세 분석 결과
-        </h1>
+    <div className="min-h-screen bg-[#0B0E14] text-white">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-900/10 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-900/10 blur-[120px] rounded-full" />
+      </div>
 
-        {/* 2. 이 부분을 수정했습니다 */}
-        <div className="prose prose-invert max-w-none text-gray-200 leading-relaxed">
-          <ReactMarkdown
-            components={{
-              // 각 문단(p) 사이에 여백을 충분히 줍니다.
-              p: ({ children }) => <p className="mb-6 last:mb-0">{children}</p>,
-              // 섹션 번호(1️⃣ 등)가 강조될 수 있도록 스타일링 가능합니다.
-              h1: ({ children }) => (
-                <h1 className="text-2xl font-bold mt-8 mb-4 text-purple-300">
-                  {children}
-                </h1>
-              ),
-            }}
-          >
-            {fortune.result}
-          </ReactMarkdown>
-        </div>
+      <div className="relative z-10 max-w-6xl mx-auto px-4 py-8 md:py-12">
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="inline-flex items-center rounded-full border border-purple-400/20 bg-purple-500/10 px-3 py-1 text-xs text-purple-200 mb-3">
+              {categoryLabelMap[fortune.user.category] ?? "AI 사주 분석"}
+            </div>
 
-        {/* 하단 결제 유도 부분은 필요할 때 주석을 해제하세요 */}
-        {/* <div className="relative mt-8">
-          <div className="blur-sm opacity-60 space-y-4 text-gray-300">
-            <p>{hidden}</p>
-          </div>
+            <h1 className="text-3xl md:text-4xl font-bold mb-3">
+              {safeText(fortune.user.name)}님의 분석 결과
+            </h1>
 
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-transparent to-[#0B0E14]">
-            <Lock className="text-purple-400 mb-3" size={30} />
-
-            <p className="text-sm text-gray-400 mb-4">
-              전체 운세 분석이 잠겨 있습니다
+            <p className="text-gray-400 max-w-2xl leading-relaxed">
+              {safeText(
+                analysis?.strength?.summary,
+                "사주 원국과 운의 흐름을 기반으로 핵심 결과를 정리했습니다.",
+              )}
             </p>
           </div>
+
+          <div className="flex gap-3">
+            <Link
+              href="/"
+              className="rounded-2xl border border-white/10 bg-black/20 px-5 py-3 text-sm font-medium text-gray-200"
+            >
+              홈으로
+            </Link>
+            <Link
+              href="/"
+              className="rounded-2xl bg-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_0_20px_rgba(147,51,234,0.25)]"
+            >
+              다시 분석하기
+            </Link>
+          </div>
         </div>
 
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          className="w-full mt-8 bg-purple-600 hover:bg-purple-500 transition p-5 rounded-2xl font-bold text-lg shadow-lg"
-        >
-          전체 운세 보기 (3,900원)
-        </motion.button> */}
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-6">
+            <section className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl p-6 md:p-8">
+              <h2 className="text-xl font-bold mb-5">핵심 요약</h2>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-xs text-gray-500 mb-1">일간</div>
+                  <div className="text-lg font-semibold">
+                    {safeText(analysis?.saju?.dayStem)}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-xs text-gray-500 mb-1">일간 상태</div>
+                  <div className="text-lg font-semibold">
+                    {strengthLabelMap[analysis?.strength?.strength ?? ""] ??
+                      "-"}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-xs text-gray-500 mb-1">용신</div>
+                  <div className="text-lg font-semibold">
+                    {safeText(analysis?.yongsin?.yongsin)}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-xs text-gray-500 mb-1">현재 대운</div>
+                  <div className="text-lg font-semibold">
+                    {safeText(analysis?.daewoon?.daewoon)}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl p-6 md:p-8">
+              <h2 className="text-xl font-bold mb-5">사주 원국</h2>
+
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                {[
+                  {
+                    label: "년주",
+                    pillar: `${safeText(analysis?.saju?.yearStem, "")}${safeText(
+                      analysis?.saju?.yearBranch,
+                      "",
+                    )}`,
+                  },
+                  {
+                    label: "월주",
+                    pillar: `${safeText(analysis?.saju?.monthStem, "")}${safeText(
+                      analysis?.saju?.monthBranch,
+                      "",
+                    )}`,
+                  },
+                  {
+                    label: "일주",
+                    pillar: `${safeText(analysis?.saju?.dayStem, "")}${safeText(
+                      analysis?.saju?.dayBranch,
+                      "",
+                    )}`,
+                  },
+                  {
+                    label: "시주",
+                    pillar: `${safeText(analysis?.saju?.hourStem, "")}${safeText(
+                      analysis?.saju?.hourBranch,
+                      "",
+                    )}`,
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-2xl border border-white/10 bg-black/20 p-5 text-center"
+                  >
+                    <div className="text-xs text-gray-500 mb-3">
+                      {item.label}
+                    </div>
+                    <div className="text-2xl font-bold tracking-wider">
+                      {item.pillar || "-"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl p-6 md:p-8">
+              <h2 className="text-xl font-bold mb-5">오행 분석</h2>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+                {[
+                  {
+                    key: "wood",
+                    label: "목",
+                    value: Number(analysis?.elements?.wood ?? 0),
+                  },
+                  {
+                    key: "fire",
+                    label: "화",
+                    value: Number(analysis?.elements?.fire ?? 0),
+                  },
+                  {
+                    key: "earth",
+                    label: "토",
+                    value: Number(analysis?.elements?.earth ?? 0),
+                  },
+                  {
+                    key: "metal",
+                    label: "금",
+                    value: Number(analysis?.elements?.metal ?? 0),
+                  },
+                  {
+                    key: "water",
+                    label: "수",
+                    value: Number(analysis?.elements?.water ?? 0),
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.key}
+                    className="rounded-2xl border border-white/10 bg-black/20 p-4"
+                  >
+                    <div className="text-xs text-gray-500 mb-2">
+                      {item.label}
+                    </div>
+                    <div className="text-2xl font-bold mb-3">{item.value}</div>
+                    <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-purple-500"
+                        style={{ width: `${Math.min(item.value * 20, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-sm text-gray-400 mb-2">강한 오행</div>
+                  <div className="flex flex-wrap gap-2">
+                    {dominantElements.length ? (
+                      dominantElements.map((item) => (
+                        <span
+                          key={item.key}
+                          className="rounded-full bg-purple-500/15 px-3 py-1 text-sm text-purple-200"
+                        >
+                          {item.label} ({item.value})
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-gray-500">데이터 없음</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-sm text-gray-400 mb-2">보완 포인트</div>
+                  <div className="flex flex-wrap gap-2">
+                    {lackingElements.length ? (
+                      lackingElements.map((item) => (
+                        <span
+                          key={item.key}
+                          className="rounded-full bg-white/10 px-3 py-1 text-sm text-gray-200"
+                        >
+                          {item.label} ({item.value})
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-gray-500">데이터 없음</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl p-6 md:p-8">
+              <h2 className="text-xl font-bold mb-5">현재 흐름</h2>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-xs text-gray-500 mb-1">현재 대운</div>
+                  <div className="text-xl font-bold">
+                    {safeText(analysis?.daewoon?.daewoon)}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-xs text-gray-500 mb-1">현재 세운</div>
+                  <div className="text-xl font-bold">
+                    {safeText(analysis?.sewoonDetail?.pillar)}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-xs text-gray-500 mb-1">세운 관계</div>
+                  <div className="text-xl font-bold">
+                    {safeText(analysis?.sewoonDetail?.relation)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-sm text-gray-400 mb-3">관계 포인트</div>
+                <p className="text-sm text-gray-300 leading-relaxed">
+                  {safeText(
+                    analysis?.relations?.summary,
+                    "특별한 관계 포인트가 없습니다.",
+                  )}
+                </p>
+              </div>
+            </section>
+
+            <section className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl p-6 md:p-8">
+              <h2 className="text-xl font-bold mb-5">월별 포인트</h2>
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-base font-semibold mb-3 text-purple-200">
+                    좋은 흐름의 달
+                  </div>
+                  <div className="space-y-3">
+                    {goodMonths.length ? (
+                      goodMonths.map((item) => (
+                        <div
+                          key={`${item.month}-${item.pillar}`}
+                          className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3"
+                        >
+                          <div>
+                            <div className="font-medium">{item.month}월</div>
+                            <div className="text-xs text-gray-500">
+                              {item.pillar}
+                            </div>
+                          </div>
+                          <div className="text-sm text-purple-200 font-semibold">
+                            {item.score}점
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500">데이터 없음</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-base font-semibold mb-3 text-red-200">
+                    주의가 필요한 달
+                  </div>
+                  <div className="space-y-3">
+                    {cautionMonths.length ? (
+                      cautionMonths.map((item) => (
+                        <div
+                          key={`${item.month}-${item.pillar}`}
+                          className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3"
+                        >
+                          <div>
+                            <div className="font-medium">{item.month}월</div>
+                            <div className="text-xs text-gray-500">
+                              {item.pillar}
+                            </div>
+                          </div>
+                          <div className="text-sm text-red-200 font-semibold">
+                            {item.score}점
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500">데이터 없음</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl p-6 md:p-8">
+              <h2 className="text-xl font-bold mb-5">AI 해석 리포트</h2>
+
+              <div className="prose prose-invert max-w-none prose-p:text-gray-300 prose-headings:text-white prose-strong:text-white prose-li:text-gray-300">
+                <ReactMarkdown>{fortune.result}</ReactMarkdown>
+              </div>
+            </section>
+          </div>
+
+          <div className="space-y-6">
+            <section className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl p-6 sticky top-6">
+              <h2 className="text-xl font-bold mb-5">빠른 체크</h2>
+
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-xs text-gray-500 mb-1">희신</div>
+                  <div className="text-lg font-semibold">
+                    {safeText(analysis?.yongsin?.heesin)}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-xs text-gray-500 mb-1">기신</div>
+                  <div className="text-lg font-semibold">
+                    {safeText(analysis?.yongsin?.gisin)}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-xs text-gray-500 mb-2">강한 십성</div>
+                  <div className="flex flex-wrap gap-2">
+                    {Array.isArray(analysis?.tenGods?.dominant) &&
+                    analysis.tenGods.dominant.length ? (
+                      analysis.tenGods.dominant.map((item: string) => (
+                        <span
+                          key={item}
+                          className="rounded-full bg-purple-500/15 px-3 py-1 text-sm text-purple-200"
+                        >
+                          {item}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-gray-500">데이터 없음</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-xs text-gray-500 mb-2">약한 십성</div>
+                  <div className="flex flex-wrap gap-2">
+                    {Array.isArray(analysis?.tenGods?.weak) &&
+                    analysis.tenGods.weak.length ? (
+                      analysis.tenGods.weak.map((item: string) => (
+                        <span
+                          key={item}
+                          className="rounded-full bg-white/10 px-3 py-1 text-sm text-gray-200"
+                        >
+                          {item}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-gray-500">데이터 없음</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-xs text-gray-500 mb-1">질문</div>
+                  <div className="text-sm leading-relaxed text-gray-300">
+                    {safeText(fortune.user.question, "질문 없음")}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-xs text-gray-500 mb-1">분석 기준</div>
+                  <div className="text-sm leading-relaxed text-gray-300">
+                    {fortune.user.birthDate}{" "}
+                    {fortune.user.birthTime || "시간 미상"}
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
       </div>
     </div>
   );

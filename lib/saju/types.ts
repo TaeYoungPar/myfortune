@@ -97,9 +97,11 @@ export type TenGodSummary = {
   summary: string;
 };
 
+export type RelationType = "합" | "충" | "형" | "파" | "해" | "삼합" | "반합";
+
 export type RelationPair = {
   target: string;
-  type: "합" | "충" | "형" | "파" | "해";
+  type: RelationType;
   source: string;
   weight: number;
   note: string;
@@ -108,6 +110,7 @@ export type RelationPair = {
 export type RelationSummary = {
   natal: RelationPair[];
   year: RelationPair[];
+  highlights: string[];
   summary: string;
 };
 
@@ -119,6 +122,8 @@ export type SeWoonDetail = {
   stemElement: string;
   branchElement: string;
   relation: string;
+  score: number;
+  keywords: string[];
   note: string;
 };
 
@@ -126,7 +131,44 @@ export type MonthlyFortune = {
   month: number;
   pillar: string;
   score: number;
+  favorable: boolean;
   keywords: string[];
+  note: string;
+};
+
+export type BalanceResult = {
+  gap: number;
+  level: "balanced" | "slightly_unbalanced" | "unbalanced";
+};
+
+export type SajuSummary = {
+  dayMaster: string;
+  dayElement: string;
+  strength: "strong" | "weak";
+  strengthScore: number;
+  balance: BalanceResult;
+  dominantElements: string[];
+  lackingElements: string[];
+  yongsin: string;
+  heesin: string;
+  gisin: string;
+  dominantTenGods: TenGodName[];
+  weakTenGods: TenGodName[];
+  relationHighlights: string[];
+  currentDaewoon: string;
+  currentSeWoon: string;
+  currentSeWoonRelation: string;
+  goodMonths: Array<{ month: number; pillar: string; score: number }>;
+  cautionMonths: Array<{ month: number; pillar: string; score: number }>;
+  coreMessage: string;
+};
+
+export type CompatibilitySummary = {
+  score: number;
+  grade: "A" | "B" | "C" | "D";
+  strengths: string[];
+  cautions: string[];
+  summary: string;
 };
 
 export type SajuAnalysis = {
@@ -141,4 +183,5 @@ export type SajuAnalysis = {
   tenGods: TenGodSummary;
   relations: RelationSummary;
   monthlyFortune: MonthlyFortune[];
+  summary: SajuSummary;
 };

@@ -8,6 +8,7 @@ import { calculateSeWoon, calculateSeWoonDetail } from "./sewoon";
 import { calculateTenGods } from "./tenGods";
 import { analyzeRelations } from "./relations";
 import { calculateMonthlyFortune } from "./monthlyFortune";
+import { buildSajuSummary } from "./summary";
 
 export function analyzeSaju(user: UserFortuneInput): SajuAnalysis {
   const saju = calculateSaju(user.birthDate, user.birthTime);
@@ -27,10 +28,10 @@ export function analyzeSaju(user: UserFortuneInput): SajuAnalysis {
 
   const tenGods = calculateTenGods(saju);
   const relations = analyzeRelations(saju, sewoonDetail.branch);
-  const monthlyFortune = calculateMonthlyFortune(elements, strength.dayElement);
+  const monthlyFortune = calculateMonthlyFortune(elements, strength, sewoonDetail.year);
   const sewoon = calculateSeWoon(saju);
 
-  return {
+  const analysisBase = {
     saju,
     elements,
     elementBreakdown,
@@ -42,5 +43,10 @@ export function analyzeSaju(user: UserFortuneInput): SajuAnalysis {
     tenGods,
     relations,
     monthlyFortune,
+  };
+
+  return {
+    ...analysisBase,
+    summary: buildSajuSummary(analysisBase),
   };
 }

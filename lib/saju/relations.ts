@@ -37,40 +37,41 @@ const 六破 = new Map([
 ]);
 
 const 三刑 = [
-  ["인", "사"],
-  ["사", "신"],
-  ["신", "인"],
-  ["축", "술"],
-  ["술", "미"],
-  ["미", "축"],
-  ["자", "묘"],
-  ["묘", "자"],
-  ["진", "진"],
-  ["오", "오"],
-  ["유", "유"],
-  ["해", "해"],
+  ["인", "사"], ["사", "신"], ["신", "인"],
+  ["축", "술"], ["술", "미"], ["미", "축"],
+  ["자", "묘"], ["묘", "자"],
+  ["진", "진"], ["오", "오"], ["유", "유"], ["해", "해"],
+] as const;
+
+const THREE_HARMONY = [
+  { branches: ["신", "자", "진"], element: "수" },
+  { branches: ["해", "묘", "미"], element: "목" },
+  { branches: ["인", "오", "술"], element: "화" },
+  { branches: ["사", "유", "축"], element: "금" },
 ] as const;
 
 function key(a: string, b: string) {
   return [a, b].sort().join("");
 }
 
+function uniqueRelations(items: RelationPair[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const id = `${key(item.source, item.target)}-${item.type}`;
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}
+
 function detectPair(a: string, b: string): RelationPair[] {
   const result: RelationPair[] = [];
   const pairKey = key(a, b);
 
-  if (六合.has(pairKey)) {
-    result.push({ target: b, source: a, type: "합", weight: 0.8, note: 六合.get(pairKey)! });
-  }
-  if (六冲.has(pairKey)) {
-    result.push({ target: b, source: a, type: "충", weight: 1.2, note: 六冲.get(pairKey)! });
-  }
-  if (六害.has(pairKey)) {
-    result.push({ target: b, source: a, type: "해", weight: 0.7, note: 六害.get(pairKey)! });
-  }
-  if (六破.has(pairKey)) {
-    result.push({ target: b, source: a, type: "파", weight: 0.6, note: 六破.get(pairKey)! });
-  }
+  if (六合.has(pairKey)) result.push({ target: b, source: a, type: "합", weight: 0.8, note: 六合.get(pairKey)! });
+  if (六冲.has(pairKey)) result.push({ target: b, source: a, type: "충", weight: 1.2, note: 六冲.get(pairKey)! });
+  if (六害.has(pairKey)) result.push({ target: b, source: a, type: "해", weight: 0.7, note: 六害.get(pairKey)! });
+  if (六破.has(pairKey)) result.push({ target: b, source: a, type: "파", weight: 0.6, note: 六破.get(pairKey)! });
 
   if (三刑.some(([x, y]) => x === a && y === b)) {
     result.push({
@@ -85,6 +86,31 @@ function detectPair(a: string, b: string): RelationPair[] {
   return result;
 }
 
+function detectHarmony(branches: string[], sourceLabel: string): RelationPair[] {
+  const result: RelationPair[] = [];
+  for (const set of THREE_HARMONY) {
+    const matched = set.branches.filter((branch) => branches.includes(branch));
+    if (matched.length === 3) {
+      result.push({
+        source: sourceLabel,
+        target: matched.join("-"),
+        type: "삼합",
+        weight: 1.1,
+        note: `${set.element} 기운의 삼합이 갖춰져 특정 주제에 힘이 한쪽으로 모입니다.`,
+      });
+    } else if (matched.length === 2) {
+      result.push({
+        source: sourceLabel,
+        target: matched.join("-"),
+        type: "반합",
+        weight: 0.6,
+        note: `${set.element} 기운이 부분적으로 이어져 특정 흐름이 강화됩니다.`,
+      });
+    }
+  }
+  return result;
+}
+
 export function analyzeRelations(saju: SajuPillars, yearBranch?: string): RelationSummary {
   const natalBranches = [saju.yearBranch, saju.monthBranch, saju.dayBranch, saju.hourBranch];
   const natal: RelationPair[] = [];
@@ -94,22 +120,30 @@ export function analyzeRelations(saju: SajuPillars, yearBranch?: string): Relati
       natal.push(...detectPair(natalBranches[i], natalBranches[j]));
     }
   }
+  natal.push(...detectHarmony(natalBranches, "원국"));
 
   const year: RelationPair[] = [];
   if (yearBranch) {
-    natalBranches.forEach((branch) => {
-      year.push(...detectPair(yearBranch, branch));
-    });
+    natalBranches.forEach((branch) => year.push(...detectPair(yearBranch, branch)));
+    year.push(...detectHarmony([...natalBranches, yearBranch], "세운"));
   }
 
-  const relationTypes = [...natal, ...year].map((item) => item.type);
-  const summary = relationTypes.length
-    ? `합/충/형/파/해 중 ${relationTypes.join(", ")} 작용이 있어 관계·일정·심리 리듬 변화를 함께 봐야 합니다.`
+  const dedupedNatal = uniqueRelations(natal);
+  const dedupedYear = uniqueRelations(year);
+  const all = [...dedupedNatal, ...dedupedYear];
+  const highlights = all
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, 4)
+    .map((item) => `${item.type}: ${item.note}`);
+
+  const summary = all.length
+    ? `관계 구조에서는 ${[...new Set(all.map((item) => item.type))].join(", ")} 작용이 보여 일정·관계·감정 흐름을 입체적으로 봐야 합니다.`
     : "큰 충돌 신호는 약한 편이라 흐름을 안정적으로 해석할 수 있습니다.";
 
   return {
-    natal,
-    year,
+    natal: dedupedNatal,
+    year: dedupedYear,
+    highlights,
     summary,
   };
 }

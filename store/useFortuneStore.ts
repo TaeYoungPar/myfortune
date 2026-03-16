@@ -16,6 +16,15 @@ export const useFortuneStore = create(
 
       category: "",
       question: "",
+
+      // 궁합용 상대 정보
+      partnerName: "",
+      partnerGender: "female",
+      partnerCalendarType: "solar",
+      partnerBirthYear: "",
+      partnerBirthMonth: "",
+      partnerBirthDay: "",
+      partnerBirthTime: "",
     },
     (set) => ({
       setName: (name: string) => set({ name }),
@@ -29,6 +38,18 @@ export const useFortuneStore = create(
 
       setCategory: (category: string) => set({ category }),
       setQuestion: (question: string) => set({ question }),
+
+      setPartnerName: (partnerName: string) => set({ partnerName }),
+      setPartnerGender: (partnerGender: string) => set({ partnerGender }),
+      setPartnerCalendarType: (partnerCalendarType: string) =>
+        set({ partnerCalendarType }),
+      setPartnerBirthYear: (partnerBirthYear: string) =>
+        set({ partnerBirthYear }),
+      setPartnerBirthMonth: (partnerBirthMonth: string) =>
+        set({ partnerBirthMonth }),
+      setPartnerBirthDay: (partnerBirthDay: string) => set({ partnerBirthDay }),
+      setPartnerBirthTime: (partnerBirthTime: string) =>
+        set({ partnerBirthTime }),
     }),
   ),
 );
