@@ -78,16 +78,16 @@ export type DaewoonResult = {
 };
 
 export type TenGodName =
-  | "비견"
-  | "겁재"
-  | "식신"
-  | "상관"
-  | "편재"
-  | "정재"
-  | "편관"
-  | "정관"
-  | "편인"
-  | "정인";
+  | "bigyeon"
+  | "geopjae"
+  | "siksin"
+  | "sanggwan"
+  | "pyeonjae"
+  | "jeongjae"
+  | "pyeongwan"
+  | "jeonggwan"
+  | "pyeonin"
+  | "jeongin";
 
 export type TenGodCount = Record<TenGodName, number>;
 

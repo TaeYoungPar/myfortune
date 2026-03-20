@@ -6,21 +6,25 @@ import {
   SajuSummary,
   TenGodName,
 } from "./types";
-import { ELEMENT_LABELS, STEM_ELEMENT_MAP } from "./stemsBranches";
+import {
+  ELEMENT_LABELS,
+  STEM_ELEMENT_MAP,
+  TEN_GOD_LABELS,
+} from "./stemsBranches";
 
 type SajuAnalysisBase = Omit<SajuAnalysis, "summary">;
 
 const TEN_GOD_MEANINGS: Record<TenGodName, string> = {
-  비견: "자기주도성과 독립성이 강하게 드러납니다.",
-  겁재: "경쟁, 동료, 협업 속 긴장과 추진력이 함께 작동합니다.",
-  식신: "생산성, 꾸준함, 결과를 만드는 힘이 살아납니다.",
-  상관: "표현력, 창의성, 즉흥성이 강하게 드러납니다.",
-  편재: "사업감각, 기회 포착, 외부 활동성이 강해집니다.",
-  정재: "안정적 관리, 실속, 재정 감각이 두드러집니다.",
-  편관: "압박, 책임, 도전 의식이 강해집니다.",
-  정관: "규칙, 직장성, 평판과 책임감이 중요해집니다.",
-  편인: "직감, 몰입, 연구 성향이 강하게 작동합니다.",
-  정인: "학습, 보호, 이해력, 회복력이 살아납니다.",
+  bigyeon: "자기주도성과 독립성이 강하게 드러납니다.",
+  geopjae: "경쟁, 동료, 협업 속 긴장과 추진력이 함께 작동합니다.",
+  siksin: "생산성, 꾸준함, 결과를 만드는 힘이 살아납니다.",
+  sanggwan: "표현력, 창의성, 즉흥성이 강하게 드러납니다.",
+  pyeonjae: "사업감각, 기회 포착, 외부 활동성이 강해집니다.",
+  jeongjae: "안정적 관리, 실속, 재정 감각이 두드러집니다.",
+  pyeongwan: "압박, 책임, 도전 의식이 강해집니다.",
+  jeonggwan: "규칙, 직장성, 평판과 책임감이 중요해집니다.",
+  pyeonin: "직감, 몰입, 연구 성향이 강하게 작동합니다.",
+  jeongin: "학습, 보호, 이해력, 회복력이 살아납니다.",
 };
 
 function getBalance(elements: ElementCount): BalanceResult {
@@ -47,7 +51,8 @@ function buildCoreMessage(
   dominantElements: string[],
   lackingElements: string[],
 ) {
-  const primaryTenGod = analysis.tenGods.dominant[0] ?? "비견";
+  const primaryTenGod = analysis.tenGods.dominant[0] ?? "bigyeon";
+  const primaryTenGodLabel = TEN_GOD_LABELS[primaryTenGod];
   const relationHint =
     analysis.relations.highlights[0] ?? "관계 변동은 과하지 않은 편";
 
@@ -58,7 +63,7 @@ function buildCoreMessage(
         : "보강과 회복 환경을 잘 챙길수록 힘이 살아나는 편"
     }입니다.`,
     `오행은 ${dominantElements.join(", ")} 쪽이 상대적으로 강하고 ${lackingElements.join(", ")} 쪽은 보완 포인트입니다.`,
-    `십성에서는 ${primaryTenGod} 기운이 눈에 띄며, ${TEN_GOD_MEANINGS[primaryTenGod]}`,
+    `십성에서는 ${primaryTenGodLabel} 기운이 눈에 띄며, ${TEN_GOD_MEANINGS[primaryTenGod]}`,
     `현재는 ${analysis.daewoon.daewoon} 대운과 ${analysis.sewoonDetail.pillar} 세운이 겹치며 ${analysis.sewoonDetail.relation}으로 읽히고, ${relationHint} 흐름을 함께 봐야 합니다.`,
   ].join(" ");
 }

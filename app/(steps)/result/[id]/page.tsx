@@ -4,11 +4,11 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery } from "convex/react";
-import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { TEN_GOD_LABELS } from "@/lib/saju/stemsBranches";
 
 const categoryLabelMap: Record<string, string> = {
   love: "연애운",
@@ -40,6 +40,21 @@ function safeText(value: unknown, fallback = "-") {
   return typeof value === "string" && value.trim() ? value : fallback;
 }
 
+function getTenGodLabel(value: unknown) {
+  if (typeof value !== "string") return "-";
+  return TEN_GOD_LABELS[value as keyof typeof TEN_GOD_LABELS] ?? value;
+}
+
+function normalizeReportMarkdown(text: string) {
+  return text
+    .replace(/^1\.\s*(.+)$/gm, "## 1. $1")
+    .replace(/^2\.\s*(.+)$/gm, "## 2. $1")
+    .replace(/^3\.\s*(.+)$/gm, "## 3. $1")
+    .replace(/^4\.\s*(.+)$/gm, "## 4. $1")
+    .replace(/^5\.\s*(.+)$/gm, "## 5. $1")
+    .replace(/^6\.\s*(.+)$/gm, "## 6. $1");
+}
+
 export default function ResultPage() {
   const params = useParams();
 
@@ -51,6 +66,10 @@ export default function ResultPage() {
   const analysis = fortune?.analysis;
   const compatibility = analysis?.compatibility;
   const partnerAnalysis = analysis?.partnerAnalysis;
+  const summary = analysis?.summary;
+
+  const categoryLabel =
+    categoryLabelMap[fortune?.user?.category ?? ""] ?? "AI 사주 분석";
 
   const dominantElements = useMemo(() => {
     if (!analysis?.elements) return [];
@@ -94,6 +113,17 @@ export default function ResultPage() {
       .slice(0, 3);
   }, [analysis]);
 
+  const heroKeywords = useMemo(() => {
+    const keywords = [
+      safeText(summary?.yongsin, ""),
+      safeText(summary?.currentDaewoon, ""),
+      safeText(summary?.currentSeWoon, ""),
+      safeText(summary?.currentSeWoonRelation, ""),
+    ].filter((item) => item && item !== "-");
+
+    return [...new Set(keywords)].slice(0, 4);
+  }, [summary]);
+
   if (!fortune) {
     return (
       <div className="min-h-screen bg-[#0B0E14] text-white flex items-center justify-center p-6">
@@ -115,12 +145,14 @@ export default function ResultPage() {
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="inline-flex items-center rounded-full border border-purple-400/20 bg-purple-500/10 px-3 py-1 text-xs text-purple-200 mb-3">
-              {categoryLabelMap[fortune.user.category] ?? "AI 사주 분석"}
+              {categoryLabel}
             </div>
 
             <h1 className="text-3xl md:text-4xl font-bold mb-3">
               {fortune.user.category === "compatibility" && fortune.user.partner
-                ? `${safeText(fortune.user.name)}님 · ${safeText(fortune.user.partner.name)}님 궁합 결과`
+                ? `${safeText(fortune.user.name)}님 · ${safeText(
+                    fortune.user.partner.name,
+                  )}님 궁합 결과`
                 : `${safeText(fortune.user.name)}님의 분석 결과`}
             </h1>
 
@@ -147,6 +179,104 @@ export default function ResultPage() {
             </Link>
           </div>
         </div>
+
+        <section className="mb-6 rounded-[2rem] border border-purple-400/20 bg-gradient-to-br from-purple-500/15 via-indigo-500/10 to-white/5 backdrop-blur-xl p-6 md:p-8 shadow-[0_20px_70px_rgba(88,28,135,0.2)]">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+            <div>
+              <div className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs text-purple-100 mb-4">
+                이번 결과의 결론
+              </div>
+
+              <h2 className="text-2xl md:text-3xl font-bold leading-tight mb-4">
+                {fortune.user.category === "compatibility"
+                  ? `${safeText(fortune.user.name)}님과 ${safeText(
+                      fortune.user.partner?.name,
+                    )}님의 관계 흐름 핵심`
+                  : `${categoryLabel} 중심 핵심 해석`}
+              </h2>
+
+              <p className="text-sm md:text-base leading-8 text-gray-200 whitespace-pre-line">
+                {safeText(
+                  summary?.coreMessage,
+                  "현재 흐름과 사주 구조를 종합해 현실적인 방향성을 정리했습니다.",
+                )}
+              </p>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                {heroKeywords.length ? (
+                  heroKeywords.map((item) => (
+                    <span
+                      key={item}
+                      className="rounded-full border border-purple-300/20 bg-purple-500/15 px-3 py-1 text-sm text-purple-100"
+                    >
+                      {item}
+                    </span>
+                  ))
+                ) : (
+                  <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-sm text-gray-300">
+                    핵심 흐름 정리
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs text-gray-400 mb-1">현재 카테고리</div>
+                <div className="text-lg font-bold">{categoryLabel}</div>
+              </div>
+
+              <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs text-gray-400 mb-1">일간 상태</div>
+                <div className="text-lg font-bold">
+                  {strengthLabelMap[analysis?.strength?.strength ?? ""] ?? "-"}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs text-gray-400 mb-1">핵심 용신</div>
+                <div className="text-lg font-bold">
+                  {safeText(
+                    summary?.yongsin,
+                    safeText(analysis?.yongsin?.yongsin),
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs text-gray-400 mb-1">현재 흐름</div>
+                <div className="text-lg font-bold">
+                  {safeText(
+                    summary?.currentSeWoonRelation,
+                    safeText(analysis?.sewoonDetail?.relation),
+                  )}
+                </div>
+              </div>
+
+              <div className="col-span-2 rounded-3xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs text-gray-400 mb-2">
+                  지금 가장 먼저 볼 포인트
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {goodMonths.length ? (
+                    goodMonths.slice(0, 2).map((item) => (
+                      <span
+                        key={`${item.month}-${item.pillar}`}
+                        className="rounded-full bg-purple-500/15 px-3 py-1 text-sm text-purple-100"
+                      >
+                        {item.month}월 · {item.pillar} · {item.score}점
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-gray-300">
+                      월운 데이터 준비 중
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">
@@ -185,7 +315,6 @@ export default function ResultPage() {
               </div>
             </section>
 
-
             {fortune.user.category === "compatibility" && compatibility ? (
               <section className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl p-6 md:p-8">
                 <h2 className="text-xl font-bold mb-5">궁합 핵심 요약</h2>
@@ -193,11 +322,15 @@ export default function ResultPage() {
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-5">
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                     <div className="text-xs text-gray-500 mb-1">궁합 점수</div>
-                    <div className="text-2xl font-bold">{compatibility.score}점</div>
+                    <div className="text-2xl font-bold">
+                      {compatibility.score}점
+                    </div>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                     <div className="text-xs text-gray-500 mb-1">등급</div>
-                    <div className="text-2xl font-bold">{compatibility.grade}</div>
+                    <div className="text-2xl font-bold">
+                      {compatibility.grade}
+                    </div>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                     <div className="text-xs text-gray-500 mb-1">상대 일주</div>
@@ -209,25 +342,35 @@ export default function ResultPage() {
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
-                    <div className="text-sm font-semibold mb-3 text-purple-200">잘 맞는 지점</div>
+                    <div className="text-sm font-semibold mb-3 text-purple-200">
+                      잘 맞는 지점
+                    </div>
                     <ul className="space-y-2 text-sm text-gray-300 list-disc pl-5">
-                      {compatibility.strengths.map((item: string, index: number) => (
-                        <li key={`${item}-${index}`}>{item}</li>
-                      ))}
+                      {compatibility.strengths.map(
+                        (item: string, index: number) => (
+                          <li key={`${item}-${index}`}>{item}</li>
+                        ),
+                      )}
                     </ul>
                   </div>
 
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
-                    <div className="text-sm font-semibold mb-3 text-amber-200">조율 포인트</div>
+                    <div className="text-sm font-semibold mb-3 text-amber-200">
+                      조율 포인트
+                    </div>
                     <ul className="space-y-2 text-sm text-gray-300 list-disc pl-5">
-                      {compatibility.cautions.map((item: string, index: number) => (
-                        <li key={`${item}-${index}`}>{item}</li>
-                      ))}
+                      {compatibility.cautions.map(
+                        (item: string, index: number) => (
+                          <li key={`${item}-${index}`}>{item}</li>
+                        ),
+                      )}
                     </ul>
                   </div>
                 </div>
 
-                <p className="mt-5 text-sm leading-7 text-gray-300">{compatibility.summary}</p>
+                <p className="mt-5 text-sm leading-7 text-gray-300">
+                  {compatibility.summary}
+                </p>
               </section>
             ) : null}
 
@@ -470,9 +613,41 @@ export default function ResultPage() {
             <section className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl p-6 md:p-8">
               <h2 className="text-xl font-bold mb-5">AI 해석 리포트</h2>
 
-              <div className="prose prose-invert max-w-none prose-p:text-gray-300 prose-headings:text-white prose-strong:text-white prose-li:text-gray-300">
-                <ReactMarkdown>{fortune.result}</ReactMarkdown>
-              </div>
+              <ReactMarkdown
+                components={{
+                  h2: ({ children }) => (
+                    <h2 className="text-2xl font-bold mt-8 mb-4 text-white">
+                      {children}
+                    </h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="text-xl font-semibold mt-6 mb-3 text-white">
+                      {children}
+                    </h3>
+                  ),
+                  p: ({ children }) => (
+                    <p className="text-gray-300 leading-8 my-3">{children}</p>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="list-disc pl-5 my-4 text-gray-300">
+                      {children}
+                    </ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="list-decimal pl-5 my-4 text-gray-300">
+                      {children}
+                    </ol>
+                  ),
+                  li: ({ children }) => <li className="my-1">{children}</li>,
+                  strong: ({ children }) => (
+                    <strong className="text-white font-semibold">
+                      {children}
+                    </strong>
+                  ),
+                }}
+              >
+                {normalizeReportMarkdown(fortune.result)}
+              </ReactMarkdown>
             </section>
           </div>
 
@@ -505,7 +680,7 @@ export default function ResultPage() {
                           key={item}
                           className="rounded-full bg-purple-500/15 px-3 py-1 text-sm text-purple-200"
                         >
-                          {item}
+                          {getTenGodLabel(item)}
                         </span>
                       ))
                     ) : (
@@ -524,7 +699,7 @@ export default function ResultPage() {
                           key={item}
                           className="rounded-full bg-white/10 px-3 py-1 text-sm text-gray-200"
                         >
-                          {item}
+                          {getTenGodLabel(item)}
                         </span>
                       ))
                     ) : (
