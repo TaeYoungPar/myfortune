@@ -63,8 +63,9 @@ function buildCoreMessage(
         : "보강과 회복 환경을 잘 챙길수록 힘이 살아나는 편"
     }입니다.`,
     `오행은 ${dominantElements.join(", ")} 쪽이 상대적으로 강하고 ${lackingElements.join(", ")} 쪽은 보완 포인트입니다.`,
+    `용신은 ${analysis.yongsin.yongsin}, 희신은 ${analysis.yongsin.heesin}으로 보며, ${analysis.yongsin.reason}`,
     `십성에서는 ${primaryTenGodLabel} 기운이 눈에 띄며, ${TEN_GOD_MEANINGS[primaryTenGod]}`,
-    `현재는 ${analysis.daewoon.daewoon} 대운과 ${analysis.sewoonDetail.pillar} 세운이 겹치며 ${analysis.sewoonDetail.relation}으로 읽히고, ${relationHint} 흐름을 함께 봐야 합니다.`,
+    `현재는 ${analysis.daewoon.daewoon} 대운(${analysis.daewoon.currentStartAge}세~${analysis.daewoon.currentEndAge}세 구간)과 ${analysis.sewoonDetail.pillar} 세운이 겹치며 ${analysis.sewoonDetail.relation}으로 읽히고, ${relationHint} 흐름을 함께 봐야 합니다.`,
   ].join(" ");
 }
 
@@ -90,6 +91,13 @@ export function buildSajuSummary(analysis: SajuAnalysisBase): SajuSummary {
     .slice(0, 3)
     .map(({ month, pillar, score }) => ({ month, pillar, score }));
 
+  const reasoning = [
+    `일간은 ${analysis.saju.dayStem}, 일간 오행은 ${dayElement}입니다.`,
+    `대운은 ${analysis.daewoon.basisSolarTerm}(${analysis.daewoon.basisDate}) 기준으로 ${analysis.daewoon.direction === "forward" ? "순행" : "역행"} 처리했습니다.`,
+    `세운은 ${analysis.sewoonDetail.pillar}이며 ${analysis.sewoonDetail.evidence[0] ?? analysis.sewoonDetail.note}`,
+    `용신 판단 핵심: ${analysis.yongsin.reason}`,
+  ];
+
   return {
     dayMaster: analysis.saju.dayStem,
     dayElement,
@@ -110,5 +118,6 @@ export function buildSajuSummary(analysis: SajuAnalysisBase): SajuSummary {
     goodMonths,
     cautionMonths,
     coreMessage: buildCoreMessage(analysis, dominantElements, lackingElements),
+    reasoning,
   };
 }

@@ -8,8 +8,17 @@ import type { Id } from "./_generated/dataModel";
 
 import { analyzeSaju } from "../lib/saju/analyzeSaju";
 import { analyzeCompatibility } from "../lib/saju/compatibility";
-import { createCompatibilityPrompt, createSajuPrompt } from "../lib/saju/sajuPrompt";
-import type { CompatibilityAnalysis, UserFortuneInput } from "../lib/saju/types";
+import {
+  createCompatibilityPrompt,
+  createSajuPrompt,
+} from "../lib/saju/sajuPrompt";
+import type {
+  CalendarType,
+  CompatibilityAnalysis,
+  FortuneCategory,
+  Gender,
+  UserFortuneInput,
+} from "../lib/saju/types";
 
 type PartnerArgs = {
   name: string;
@@ -30,38 +39,88 @@ type GenerateFortuneArgs = {
   partner?: PartnerArgs;
 };
 
+const GENDERS = ["male", "female"] as const;
+
+const FORTUNE_CATEGORIES = [
+  "love",
+  "reunion",
+  "crush",
+  "contact",
+  "compatibility",
+  "money",
+  "career",
+  "business",
+  "year",
+  "life",
+] as const;
+
+const CALENDAR_TYPES = ["solar", "lunar"] as const;
+
+function isGender(value: string): value is Gender {
+  return (GENDERS as readonly string[]).includes(value);
+}
+
+function isFortuneCategory(value: string): value is FortuneCategory {
+  return (FORTUNE_CATEGORIES as readonly string[]).includes(value);
+}
+
+function isCalendarType(value: string): value is CalendarType {
+  return (CALENDAR_TYPES as readonly string[]).includes(value);
+}
+
+function parseGender(value: string): Gender {
+  return isGender(value) ? value : "male";
+}
+
+function parseCategory(value: string): FortuneCategory {
+  return isFortuneCategory(value) ? value : "life";
+}
+
+function parseCalendarType(value?: string): CalendarType | undefined {
+  if (!value) return undefined;
+  return isCalendarType(value) ? value : "solar";
+}
+
 function buildCacheKey(user: GenerateFortuneArgs) {
   return JSON.stringify({
     name: user.name,
-    gender: user.gender,
-    calendarType: user.calendarType,
+    gender: parseGender(user.gender),
+    calendarType: parseCalendarType(user.calendarType) ?? "solar",
     birthDate: user.birthDate,
     birthTime: user.birthTime,
-    category: user.category,
+    category: parseCategory(user.category),
     question: user.question,
-    partner: user.partner ?? null,
+    partner: user.partner
+      ? {
+          ...user.partner,
+          gender: parseGender(user.partner.gender),
+          calendarType: parseCalendarType(user.partner.calendarType) ?? "solar",
+        }
+      : null,
   });
 }
 
 function toUserFortuneInput(user: GenerateFortuneArgs): UserFortuneInput {
   return {
     name: user.name,
-    gender: user.gender,
-    calendarType: user.calendarType === "lunar" ? "lunar" : "solar",
+    gender: parseGender(user.gender),
+    calendarType: parseCalendarType(user.calendarType),
     birthDate: user.birthDate,
     birthTime: user.birthTime,
-    category: user.category,
+    category: parseCategory(user.category),
     question: user.question,
   };
 }
 
-function toPartnerFortuneInput(user: GenerateFortuneArgs): UserFortuneInput | null {
+function toPartnerFortuneInput(
+  user: GenerateFortuneArgs,
+): UserFortuneInput | null {
   if (!user.partner) return null;
 
   return {
     name: user.partner.name,
-    gender: user.partner.gender,
-    calendarType: user.partner.calendarType === "lunar" ? "lunar" : "solar",
+    gender: parseGender(user.partner.gender),
+    calendarType: parseCalendarType(user.partner.calendarType),
     birthDate: user.partner.birthDate,
     birthTime: user.partner.birthTime,
     category: "compatibility",
@@ -85,10 +144,12 @@ const generateFortuneHandler = async (
 
   const me = toUserFortuneInput(user);
   const partner = toPartnerFortuneInput(user);
-  const isCompatibility = user.category === "compatibility" && !!partner;
+  const isCompatibility = me.category === "compatibility" && !!partner;
 
   const myAnalysis = analyzeSaju(me);
-  const partnerAnalysis = isCompatibility && partner ? analyzeSaju(partner) : null;
+  const partnerAnalysis =
+    isCompatibility && partner ? analyzeSaju(partner) : null;
+
   const compatibility =
     isCompatibility && partnerAnalysis
       ? analyzeCompatibility(myAnalysis, partnerAnalysis)
@@ -105,7 +166,13 @@ const generateFortuneHandler = async (
 
   const prompt =
     isCompatibility && partner && partnerAnalysis && compatibility
-      ? createCompatibilityPrompt(me, partner, myAnalysis, partnerAnalysis, compatibility)
+      ? createCompatibilityPrompt(
+          me,
+          partner,
+          myAnalysis,
+          partnerAnalysis,
+          compatibility,
+        )
       : createSajuPrompt(me, myAnalysis);
 
   const openai = new OpenAI({
@@ -142,7 +209,9 @@ const generateFortuneHandler = async (
         ? {
             partner: {
               ...user.partner,
-              calendarType: user.partner.calendarType === "lunar" ? "lunar" : "solar",
+              gender: parseGender(user.partner.gender),
+              calendarType:
+                parseCalendarType(user.partner.calendarType) ?? "solar",
             },
           }
         : {}),

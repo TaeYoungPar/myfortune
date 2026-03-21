@@ -11,16 +11,12 @@ import { calculateMonthlyFortune } from "./monthlyFortune";
 import { buildSajuSummary } from "./summary";
 
 export function analyzeSaju(user: UserFortuneInput): SajuAnalysis {
-  const saju = calculateSaju(
-    user.birthDate,
-    user.birthTime,
-    user.calendarType,
-  );
+  const saju = calculateSaju(user.birthDate, user.birthTime, user.calendarType);
+
   const elementBreakdown = calculateElementsWithBreakdown(saju);
   const elements = elementBreakdown.total;
   const strength = calculateStrength(saju, elements);
   const yongsin = calculateYongSin(elements, strength);
-  const sewoonDetail = calculateSeWoonDetail(saju);
 
   const daewoon = calculateDaewoon(
     user.birthDate,
@@ -30,6 +26,9 @@ export function analyzeSaju(user: UserFortuneInput): SajuAnalysis {
     saju.yearStem,
   );
 
+  const sewoonDetail = calculateSeWoonDetail(saju);
+  const sewoon = calculateSeWoon(saju);
+
   const tenGods = calculateTenGods(saju);
   const relations = analyzeRelations(saju, sewoonDetail.branch);
   const monthlyFortune = calculateMonthlyFortune(
@@ -37,7 +36,6 @@ export function analyzeSaju(user: UserFortuneInput): SajuAnalysis {
     strength,
     sewoonDetail.year,
   );
-  const sewoon = calculateSeWoon(saju);
 
   const analysisBase = {
     saju,

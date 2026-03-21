@@ -1,12 +1,25 @@
 export type CalendarType = "solar" | "lunar";
+export type Gender = "male" | "female";
+
+export type FortuneCategory =
+  | "love"
+  | "reunion"
+  | "crush"
+  | "contact"
+  | "compatibility"
+  | "money"
+  | "career"
+  | "business"
+  | "year"
+  | "life";
 
 export type UserFortuneInput = {
   name: string;
-  gender: string;
+  gender: Gender;
   birthDate: string;
   birthTime: string;
   calendarType?: CalendarType;
-  category: string;
+  category: FortuneCategory;
   question: string;
 };
 
@@ -67,6 +80,7 @@ export type Daewoon = {
 
 export type DaewoonResult = {
   startAge: number;
+  startAgeRaw: number;
   currentAge: number;
   daewoon: string;
   direction: "forward" | "backward";
@@ -75,6 +89,9 @@ export type DaewoonResult = {
   basisSolarTerm: string;
   basisDate: string;
   daysToStart: number;
+  currentIndex: number;
+  currentStartAge: number;
+  currentEndAge: number;
 };
 
 export type TenGodName =
@@ -128,6 +145,7 @@ export type SeWoonDetail = {
   score: number;
   keywords: string[];
   note: string;
+  evidence: string[];
 };
 
 export type MonthlyFortune = {
@@ -164,6 +182,7 @@ export type SajuSummary = {
   goodMonths: Array<{ month: number; pillar: string; score: number }>;
   cautionMonths: Array<{ month: number; pillar: string; score: number }>;
   coreMessage: string;
+  reasoning: string[];
 };
 
 export type CompatibilitySummary = {
@@ -172,6 +191,7 @@ export type CompatibilitySummary = {
   strengths: string[];
   cautions: string[];
   summary: string;
+  evidence: string[];
 };
 
 export type SajuAnalysis = {
