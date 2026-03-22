@@ -40,7 +40,6 @@ type GenerateFortuneArgs = {
 };
 
 const GENDERS = ["male", "female"] as const;
-
 const FORTUNE_CATEGORIES = [
   "love",
   "reunion",
@@ -53,7 +52,6 @@ const FORTUNE_CATEGORIES = [
   "year",
   "life",
 ] as const;
-
 const CALENDAR_TYPES = ["solar", "lunar"] as const;
 
 function isGender(value: string): value is Gender {
@@ -184,16 +182,25 @@ const generateFortuneHandler = async (
     messages: [
       {
         role: "system",
-        content:
-          "당신은 한국 전통 명리학을 바탕으로 현실적으로 상담하는 사주 전문가입니다.",
+        content: `
+당신은 한국 사용자에게 사주를 쉽게 설명해주는 전문 해설가입니다.
+
+반드시 지킬 규칙:
+- 한국어 존댓말만 사용
+- 결과는 읽기 쉬운 한국어 콘텐츠처럼 작성
+- 한자를 길게 나열하지 말 것
+- 어려운 명리 용어는 바로 쉬운 말로 풀어 설명할 것
+- 겁주는 표현, 파멸형 표현, 단정적 예언 금지
+- 사용자가 "잘 읽히고, 이해되고, 저장하고 싶은 결과"를 받았다고 느끼게 작성할 것
+        `.trim(),
       },
       {
         role: "user",
         content: prompt,
       },
     ],
-    temperature: 0.7,
-    max_tokens: 1800,
+    temperature: 0.8,
+    max_tokens: 2200,
   });
 
   const result =

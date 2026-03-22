@@ -17,9 +17,30 @@ const STEP_MESSAGES = [
   "신강·신약 흐름을 살피는 중...",
   "용신과 핵심 기운을 정리하는 중...",
   "대운과 세운의 흐름을 읽는 중...",
-  "AI가 결과를 해석하는 중...",
+  "결과를 해석하는 중...",
   "결과를 정리하고 있어요...",
 ];
+
+function getSajuTimeLabel(hour?: string) {
+  if (!hour) return "시간 미상";
+
+  const h = Number(hour);
+
+  if (h >= 23 || h < 1) return "자시";
+  if (h >= 1 && h < 3) return "축시";
+  if (h >= 3 && h < 5) return "인시";
+  if (h >= 5 && h < 7) return "묘시";
+  if (h >= 7 && h < 9) return "진시";
+  if (h >= 9 && h < 11) return "사시";
+  if (h >= 11 && h < 13) return "오시";
+  if (h >= 13 && h < 15) return "미시";
+  if (h >= 15 && h < 17) return "신시";
+  if (h >= 17 && h < 19) return "유시";
+  if (h >= 19 && h < 21) return "술시";
+  if (h >= 21 && h < 23) return "해시";
+
+  return "시간 미상";
+}
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -312,7 +333,8 @@ export default function AnalyzePage() {
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                   <div className="text-xs text-gray-500 mb-1">출생 정보</div>
                   <div className="text-base font-semibold">
-                    {birthDate} {store.birthTime || "시간 미상"}
+                    {birthDate}{" "}
+                    {getSajuTimeLabel(store.birthTime) || "시간 미상"}
                   </div>
                 </div>
               </div>
@@ -322,7 +344,7 @@ export default function AnalyzePage() {
                   <div className="text-xs text-gray-500 mb-1">상대 정보</div>
                   <div className="text-base font-semibold">
                     {store.partnerName || "-"} · {partnerBirthDate || "-"}{" "}
-                    {store.partnerBirthTime || "시간 미상"}
+                    {getSajuTimeLabel(store.partnerBirthTime) || "시간 미상"}
                   </div>
                 </div>
               ) : null}
